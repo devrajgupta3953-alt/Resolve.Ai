@@ -1,0 +1,6 @@
+{
+  "name": "Student Complaint Intelligence & Department Routing System",
+  "description": "AI-assisted institutional complaint management platform featuring natural language understanding, hybrid urgency assessment, risk detection, confidence estimation, automated department routing, human-in-the-loop review, and audit tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
