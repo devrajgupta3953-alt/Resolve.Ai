@@ -310,3 +310,20 @@ export interface TestRunResponse {
   durationMs: number;
   results: TestResultItem[];
 }
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'model' | 'system';
+  content: string;
+  timestamp: string;
+  modelUsed?: string;
+  audioAttached?: boolean;
+}
+
+export interface VoiceSessionState {
+  isActive: boolean;
+  status: 'idle' | 'listening' | 'transcribing' | 'speaking' | 'connected' | 'error';
+  transcript: string;
+  liveResponse: string;
+  lastError?: string;
+}

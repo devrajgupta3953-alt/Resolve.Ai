@@ -24,6 +24,8 @@ interface NavbarProps {
   onSelectTab: (tab: string) => void;
   onResetDemoData: () => void;
   onLogout: () => void;
+  onToggleChatbot: () => void;
+  isChatOpen: boolean;
   reviewRequiredCount: number;
 }
 
@@ -35,6 +37,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectTab,
   onResetDemoData,
   onLogout,
+  onToggleChatbot,
+  isChatOpen,
   reviewRequiredCount,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -150,6 +154,21 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Quick User Role Switcher, Reset & Logout */}
           <div className="flex items-center space-x-1.5 sm:space-x-2">
+            {/* Gemini AI Chatbot Trigger Button */}
+            <button
+              id="btn-nav-gemini-chat"
+              onClick={onToggleChatbot}
+              title="Open Gemini Grievance & Policy AI Assistant"
+              className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 transition shadow-xs ${
+                isChatOpen
+                  ? 'bg-[#E2725B] text-white shadow-sm'
+                  : 'bg-[#1E2B37] hover:bg-[#3D5266] text-[#FDFCF8] border border-[#E8E6E1]/20'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#E2725B]" />
+              <span className="hidden sm:inline font-sans">Gemini AI</span>
+            </button>
+
             <button
               id="btn-reset-demo"
               onClick={onResetDemoData}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Send,
   Search,
@@ -18,6 +18,9 @@ import {
   ShieldCheck,
   Building,
   RefreshCw,
+  Mic,
+  MicOff,
+  Loader2,
 } from 'lucide-react';
 import { Complaint, Department, User } from '../types';
 
@@ -59,6 +62,70 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
   const [studentCategory, setStudentCategory] = useState('');
   const [studentDepartment, setStudentDepartment] = useState('');
   const [attachments, setAttachments] = useState<{ id: string; name: string; size: number; type: string }[]>([]);
+
+  // Audio Recording & Gemini Transcription State
+  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [audioSeconds, setAudioSeconds] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<any>(null);
+
+  const startAudioDictation = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach((track) => track.stop());
+        setIsTranscribing(true);
+        try {
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = async () => {
+            const base64Data = (reader.result as string).split(',')[1];
+            const res = await fetch('/api/ai/transcribe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ audioData: base64Data, mimeType: 'audio/webm' }),
+            });
+            const data = await res.json();
+            if (data.transcription) {
+              setDescription((prev) => (prev ? `${prev}\n\n[Transcribed Audio]: ${data.transcription}` : data.transcription));
+            }
+            setIsTranscribing(false);
+          };
+        } catch (err) {
+          console.error('Transcription error:', err);
+          setIsTranscribing(false);
+        }
+      };
+
+      mediaRecorder.start(200);
+      setIsRecordingAudio(true);
+      setAudioSeconds(0);
+      timerRef.current = setInterval(() => {
+        setAudioSeconds((prev) => prev + 1);
+      }, 1000);
+    } catch (e) {
+      alert('Microphone access is required for audio grievance dictation.');
+    }
+  };
+
+  const stopAudioDictation = () => {
+    if (mediaRecorderRef.current && isRecordingAudio) {
+      mediaRecorderRef.current.stop();
+      setIsRecordingAudio(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  };
 
   // Feedback State
   const [feedbackRating, setFeedbackRating] = useState(5);
@@ -308,11 +375,40 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                     />
                   </div>
 
-                  {/* Complaint Description */}
+                  {/* Complaint Description with Mic Audio Dictation (gemini-3.5-flash) */}
                   <div>
-                    <label htmlFor="complaint-desc" className="block text-xs font-semibold text-[#2C3E50] mb-1.5">
-                      Detailed Description <span className="text-[#E2725B]">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label htmlFor="complaint-desc" className="block text-xs font-semibold text-[#2C3E50]">
+                        Detailed Description <span className="text-[#E2725B]">*</span>
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        {isTranscribing && (
+                          <span className="text-[11px] text-[#8A9A5B] font-semibold flex items-center gap-1">
+                            <Loader2 className="w-3 h-3 animate-spin" /> Transcribing with Gemini 3.5 Flash...
+                          </span>
+                        )}
+                        {isRecordingAudio ? (
+                          <button
+                            type="button"
+                            onClick={stopAudioDictation}
+                            className="px-2.5 py-1 rounded-full bg-[#E2725B] text-white text-[11px] font-bold flex items-center gap-1 animate-pulse"
+                          >
+                            <MicOff className="w-3 h-3" /> Stop Dictating ({audioSeconds}s)
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={startAudioDictation}
+                            disabled={isTranscribing}
+                            className="px-2.5 py-1 rounded-full bg-[#F4F1EA] hover:bg-[#E8E6E1] text-[#5B7235] border border-[#D7E4C4] text-[11px] font-semibold flex items-center gap-1 transition shadow-xs"
+                            title="Speak audio in English, Hindi, or Hinglish to transcribe"
+                          >
+                            <Mic className="w-3 h-3 text-[#8A9A5B]" />
+                            <span>Voice Dictate (Gemini)</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
                     <textarea
                       id="complaint-desc"
                       required

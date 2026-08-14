@@ -6,6 +6,7 @@ import { StaffPortal } from './components/StaffPortal';
 import { AdminPortal } from './components/AdminPortal';
 import { AutomatedTestRunner } from './components/AutomatedTestRunner';
 import { PatentDocumentationViewer } from './components/PatentDocumentationViewer';
+import { GeminiChatbot } from './components/GeminiChatbot';
 import {
   AIFeedbackRecord,
   AuditLog,
@@ -15,7 +16,7 @@ import {
   SystemSettings,
   User,
 } from './types';
-import { CheckCircle, AlertCircle, Info, RefreshCw } from 'lucide-react';
+import { CheckCircle, AlertCircle, Info, RefreshCw, MessageSquare, Sparkles } from 'lucide-react';
 
 export default function App() {
   const [users, setUsers] = useState<User[]>([]);
@@ -32,6 +33,7 @@ export default function App() {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
 
   const showToast = (text: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToastMessage({ text, type });
@@ -393,6 +395,8 @@ export default function App() {
         onSelectTab={setCurrentTab}
         onResetDemoData={handleResetDemoData}
         onLogout={handleLogout}
+        onToggleChatbot={() => setIsChatOpen(!isChatOpen)}
+        isChatOpen={isChatOpen}
         reviewRequiredCount={reviewRequiredCount}
       />
 
@@ -446,6 +450,27 @@ export default function App() {
 
         {currentTab === 'patent' && <PatentDocumentationViewer />}
       </main>
+
+      {/* Floating Gemini AI Assistant Bubble & Window */}
+      {!isChatOpen && (
+        <button
+          id="floating-gemini-assistant-btn"
+          onClick={() => setIsChatOpen(true)}
+          className="fixed bottom-5 right-5 z-40 p-3.5 bg-[#2C3E50] hover:bg-[#1E2B37] text-white rounded-full shadow-2xl border-2 border-[#8A9A5B] flex items-center gap-2 transition hover:scale-105"
+          title="Open Gemini AI Grievance Assistant"
+        >
+          <Sparkles className="w-5 h-5 text-[#8A9A5B]" />
+          <span className="text-xs font-semibold pr-1 font-sans hidden sm:inline">Ask Gemini</span>
+        </button>
+      )}
+
+      {isChatOpen && (
+        <GeminiChatbot
+          currentUser={currentUser}
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+        />
+      )}
 
       {/* Institutional Footer - Natural Tones Theme */}
       <footer className="bg-[#F4F1EA] border-t border-[#E8E6E1] py-5 text-xs text-[#6B7C8E]">

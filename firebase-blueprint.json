@@ -1,0 +1,55 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered campus users including students, staff, and admins",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["STUDENT", "STAFF", "ADMIN"] },
+        "department": { "type": "string" },
+        "studentIdNumber": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "Complaint": {
+      "title": "Complaint",
+      "description": "Student grievances with AI classifications, routing, and status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "studentEmail": { "type": "string" },
+        "rollNumber": { "type": "string" },
+        "rawText": { "type": "string" },
+        "department": { "type": "string" },
+        "urgency": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "audioTranscription": { "type": "string" },
+        "source": { "type": "string" }
+      },
+      "required": ["id", "studentId", "rawText", "department", "urgency", "status"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Multi-turn assistant messages across roles",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model", "system"] },
+        "content": { "type": "string" },
+        "modelUsed": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "role", "content", "timestamp"]
+    }
+  }
+}

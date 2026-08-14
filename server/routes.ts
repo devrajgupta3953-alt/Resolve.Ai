@@ -1,6 +1,11 @@
 import express, { Request, Response } from 'express';
 import { dbManager } from './db';
-import { analyzeComplaintWithGemini } from './gemini';
+import {
+  analyzeComplaintWithGemini,
+  chatWithGemini,
+  transcribeAudioWithGemini,
+  processVoiceLiveConversation,
+} from './gemini';
 import { evaluateDeterministicRules, findPotentialDuplicates } from './ruleEngine';
 import {
   AIFeedbackRecord,
@@ -72,6 +77,94 @@ apiRouter.post('/auth/login', (req: Request, res: Response) => {
   return res.status(401).json({
     error: 'Institutional credentials not recognized. Please check your Roll Number/Email or select a quick demo profile.',
   });
+});
+
+// -------------------------------------------------------------
+// 1.1 Gemini AI Chatbot & Assistant (Multi-turn conversation)
+// Supports gemini-3.1-pro-preview (complex), gemini-3.5-flash (general), gemini-3.1-flash-lite (fast)
+// -------------------------------------------------------------
+apiRouter.post('/ai/chat', async (req: Request, res: Response) => {
+  try {
+    const user = getAuthenticatedUser(req);
+    const { messages, modelType } = req.body;
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'Messages array is required for multi-turn chat.' });
+    }
+
+    const result = await chatWithGemini(
+      messages,
+      user.role,
+      user.name,
+      modelType || 'general'
+    );
+
+    res.json({
+      success: true,
+      message: {
+        id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        role: 'model',
+        content: result.text,
+        timestamp: new Date().toISOString(),
+        modelUsed: result.modelUsed,
+      },
+    });
+  } catch (error: any) {
+    console.error('API /ai/chat error:', error);
+    res.status(500).json({ error: error.message || 'Failed to process AI chat message' });
+  }
+});
+
+// -------------------------------------------------------------
+// 1.2 Audio Transcription with gemini-3.5-flash
+// -------------------------------------------------------------
+apiRouter.post('/ai/transcribe', async (req: Request, res: Response) => {
+  try {
+    const { audioData, mimeType } = req.body;
+    if (!audioData) {
+      return res.status(400).json({ error: 'Base64 audioData string is required for transcription.' });
+    }
+
+    const result = await transcribeAudioWithGemini(audioData, mimeType || 'audio/webm');
+    res.json({
+      success: true,
+      transcription: result.transcription,
+      detectedLanguage: result.detectedLanguage,
+      modelUsed: result.modelUsed,
+    });
+  } catch (error: any) {
+    console.error('API /ai/transcribe error:', error);
+    res.status(500).json({ error: error.message || 'Failed to transcribe audio stream' });
+  }
+});
+
+// -------------------------------------------------------------
+// 1.3 Voice Live API Reasoning (gemini-3.1-flash-live-preview)
+// -------------------------------------------------------------
+apiRouter.post('/ai/voice-live', async (req: Request, res: Response) => {
+  try {
+    const user = getAuthenticatedUser(req);
+    const { userUtterance, conversationHistory } = req.body;
+
+    if (!userUtterance || !userUtterance.trim()) {
+      return res.status(400).json({ error: 'userUtterance is required.' });
+    }
+
+    const result = await processVoiceLiveConversation(
+      userUtterance,
+      conversationHistory || [],
+      user.role
+    );
+
+    res.json({
+      success: true,
+      speechReply: result.speechReply,
+      modelUsed: result.modelUsed,
+    });
+  } catch (error: any) {
+    console.error('API /ai/voice-live error:', error);
+    res.status(500).json({ error: error.message || 'Failed to process voice live response' });
+  }
 });
 
 // -------------------------------------------------------------
